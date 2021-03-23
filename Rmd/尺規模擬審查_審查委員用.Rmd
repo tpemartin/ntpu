@@ -1,0 +1,65 @@
+---
+title: "類排計算"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Download
+
+```{r}
+googledrive::as_dribble("https://drive.google.com/drive/u/0/folders/10I5-ddBVhh2So6IkC53vCaxdXwQCeSct") -> pdf_dribble
+tb_pdfs <- drive_ls(pdf_dribble)
+
+.root <- rprojroot::is_rstudio_project$make_fix_file()
+pdfdir <- file.path(.root(),"pdf")
+if(!dir.exists(pdfdir)) dir.create(pdfdir)
+for(i in 1:nrow(tb_pdfs)){
+  pdffilename = file.path(pdfdir,paste0("pdf", i,".pdf"))
+  if(!file.exists(pdffilename)) googledrive::drive_download(as_id(tb_pdfs[i,]), path=pdffilename, overwrite = T)
+}
+```
+
+## Process
+
+```{r}
+.root <- rprojroot::is_rstudio_project$make_fix_file()
+pdfdir <- file.path(.root(),"pdf")
+pdffiles <- list.files(pdfdir, pattern="\\.pdf$")
+```
+
+## 建立google sheets
+
+```{r}
+library(pdftools)
+library(dplyr)
+.root <- rprojroot::is_rstudio_project$make_fix_file()
+googlesheets4::as_sheets_id("https://docs.google.com/spreadsheets/d/1RRZc95GsQrnsm-84tmqstY93atwxuTo7w9LtYM9XgAs/edit#gid=0") -> ss
+```
+
+### 一般生
+
+```{r}
+.root <- rprojroot::is_rstudio_project$make_fix_file()
+googleDriveURL <- "https://drive.google.com/drive/u/0/folders/10I5-ddBVhh2So6IkC53vCaxdXwQCeSct"
+pdfdir_regular <- file.path(.root(),"pdf_regular")
+
+ntpu_regular <- NTPU()
+ntpu_regular$admission$assessment$download_pdfs(googleDriveURL, pdfdir = pdfdir_regular)
+ntpu_regular$admission$assessment$getTable_autobiographyStudyplan()
+
+# 自傳讀書計畫表
+ntpu_regular$admission$assessment$tb_autobiographyStudyplan
+```
+
+```{r}
+ntpu_regular$admission$googleSheets$googleSheetURL_setup(
+  "https://docs.google.com/spreadsheets/d/1VRMsXy18B26CJjhRJGxe5AsUYPdR9Ks_SHxBTxM2Uro/edit#gid=0",
+  name="一般生"
+)
+ntpu_regular$admission$googleSheets$sheets$`一般生`$upload()
+```
+
