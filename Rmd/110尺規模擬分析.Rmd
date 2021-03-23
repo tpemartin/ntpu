@@ -8,9 +8,10 @@ output_dir: "/Users/martinl/Github/ntpu/docs"
 knitr::opts_chunk$set(echo = F, eval=T, message = F, warning=F)
 ```
 
-```{r}
+```{r makecondition_lib0}
 library(dplyr)
 library(ntpu)
+
 ```
 
 
@@ -67,124 +68,20 @@ sheet_name = "detail"
 
 analysis$standardise_sheet(sheet_name = sheet_name, colnames4standardise = colnames4standardise)
 
-analysis$sheets$standardised_detail %>% View()
+# analysis$sheets$standardised_detail %>% View()
 
 ```
 
 ## disparity
 
-```{r}
-df_all <- analysis$sheets$standardised_detail
-
-assessList <- list()
-df_all %>%
-  mutate(
-    評分老師 = as.factor(評分老師),
-    ID = as.factor(ID)
-  ) -> df_all
-
-prepare_rankDF_byColumnX <- function(df_all, columnX){
-  columnX_quo <- rlang::enquo(columnX)
-  # browser()
-  df_all %>%
-    group_by(ID) %>%
-    summarise(
-      averageAll=mean(!!columnX_quo) # mean(total),
-    ) %>%
-    mutate(
-      rankAll=rank(averageAll)
-    ) 
-
-}
-
-prepare_rankDF_byColumnX(df_all, total) -> assessList$df_all
-
-library(rlang)
-levels(df_all$評分老師)-> listEvalutators
-for(i in seq_along(listEvalutators)){
-  df_name <- paste0("df_exclude_",i)
-  df_exclude <- df_all %>%
-    filter(
-      評分老師!=listEvalutators[[i]]
-    ) %>%
-    group_by(ID) %>%
-    summarise(
-      average=mean(total),
-    ) %>%
-    mutate(
-      rank=rank(average),
-      exclude=listEvalutators[[i]]
-    ) 
-  assign(df_name,df_exclude) 
-}
-bind_rows(
-  df_exclude_1,df_exclude_2,df_exclude_3,
-  df_exclude_4,df_exclude_5,df_exclude_6
-) %>%
-  mutate(
-    exclude=as.factor(exclude)
-  )-> assessList$df_exclude
-```
 
 ```{r}
-# 將學生名字依名次排序
-assessList$df_all$ID -> allNames
-assessList$df_all$rankAll -> rankAll
-allNames[rankAll] <- allNames 
-
-# df_exclude
-# assessList$df_exclude
-
-# 排除委員自己後的比序
-assessList$df_exclude %>%
-  select(-average) %>%
-  tidyr::pivot_wider(
-    names_from = "ID", values_from = "rank"
-  ) -> df_exclude_spread
-
-# df_exclude_spread[,c("exclude",as.character(allNames))]
-
-df_all %>%
-  group_by(評分老師) %>%
-  mutate(
-    rank_self=as.integer(rank(total))
-  ) %>%
-  ungroup() %>%
-  select(
-    ID, 評分老師, rank_self
-  ) %>%
-  rename(
-    "name_self"="ID"
-    )-> df_rankSelf
-
-assessList$df_exclude  %>%
-  rename(
-    "rank_exclude"="rank",
-    "student"="ID"
-  ) %>%
-  select(
-    exclude, rank_exclude, student
-  ) %>%
-  left_join(
-    df_rankSelf,
-    by=c("exclude"="評分老師", "student"="name_self")
-  ) -> df_rankComparison #%>% View("rankExam")
-
-# df_rankComparison # rank_self: 1委員排序  rank_exclude: 排1委員排序
-
-df_rankComparison %>%
-  left_join(
-    assessList$df_all %>%
-      select(ID,rankAll),
-    by=c("student"="ID")
-  ) %>%
-  rename(
-    "排序:排除一位委員"="rank_exclude",
-    "排序:單一委員"="rank_self",
-    "排序:全部委員"="rankAll",
-    "委員"="exclude"
-  ) -> df_final
+df_exclusion <- 
+  analysis$sheets$standardised_detail %>%
+    analysis$get_df_exclusionByColumn(total)
 ```
+
+
 
 ## Graph：全部（含原住民）
 
@@ -192,7 +89,7 @@ df_rankComparison %>%
 
 ```{r}
 library(ggplot2)
-ggplot(data=df_final) +
+ggplot(data=df_exclusion) +
   geom_abline(
     slope=1, intercept=0, size=1, alpha=0.3
   ) +
