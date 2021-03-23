@@ -1,6 +1,7 @@
 ---
-title: "Untitled"
+title: "模擬書審討論"
 output: html_document
+output_dir: "/Users/martinl/Github/ntpu/docs"
 ---
 
 ```{r setup, include=FALSE}
